@@ -68,6 +68,14 @@ describe("compareContracts", () => {
 		expect(result.electricity?.every((o) => o.greenType !== "NONE")).toBe(true);
 	});
 
+	it("does not apply green_only to gas, which has no green label", async () => {
+		const result = await compareContracts(
+			gent({ filters: { green_only: true } }),
+			fakeClient().client,
+		);
+		expect(result.gas?.length).toBe(10);
+	});
+
 	it("respects the limit", async () => {
 		const result = await compareContracts(
 			gent({ limit: 3 }),

@@ -11,6 +11,7 @@ const offerSchema = z.object({
 	tariffType: z.enum(["fixed", "variable", "dynamic"]),
 	greenType: z.string(),
 	yearlyPriceEur: z.number(),
+	yearlyPriceWithDiscountEur: z.number().optional(),
 	monthlyPriceEur: z.number(),
 	unitPriceCentPerKwh: z.number(),
 	contractId: z.string(),
@@ -34,7 +35,7 @@ Before calling, gather yearly usage for the last 12 months from the user's energ
 - gas.amount: yearly gas usage, in kWh (or m3 with unit "m3").
 If you only have a shorter period, scale it to a year and tell the user. Ask the user for their postcode if you don't know it.
 
-Returns contracts sorted from cheapest to most expensive yearly price, incl. VAT. Homes that inject also get "injection": feed-in contracts where a negative price is what the user earns; suppliers often require their electricity and feed-in contract together, so compare totals per supplier. Brussels and Wallonia are not covered.`;
+Returns contracts sorted from cheapest to most expensive yearly price, incl. VAT, ranked like the V-test on the regular price; yearlyPriceWithDiscountEur shows the first-year price with welcome discounts when there is one. Homes that inject also get "injection": feed-in contracts where a negative price is what the user earns; suppliers often require their electricity and feed-in contract together, so compare totals per supplier. Brussels and Wallonia are not covered.`;
 
 export function createServer(
 	client: VtestClient = createVtestClient(),

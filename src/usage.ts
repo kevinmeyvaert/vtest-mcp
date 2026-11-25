@@ -61,7 +61,9 @@ const filtersSchema = z.object({
 	green_only: z
 		.boolean()
 		.default(false)
-		.describe("Only return contracts with a green-energy label."),
+		.describe(
+			"Only return electricity contracts with a green-energy label. Gas contracts are not filtered.",
+		),
 });
 
 export const usageSchema = z

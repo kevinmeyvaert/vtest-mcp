@@ -26,7 +26,9 @@ function rank(
 	return offers
 		.filter((o) => o.energyType === energyType)
 		.filter((o) => !tariff_type || o.tariffType === tariff_type)
-		.filter((o) => !green_only || o.greenType !== "NONE")
+		.filter(
+			(o) => !green_only || o.energyType === "gas" || o.greenType !== "NONE",
+		)
 		.sort((a, b) => a.yearlyPriceEur - b.yearlyPriceEur)
 		.slice(0, usage.limit);
 }
@@ -76,7 +78,10 @@ function section(title: string, offers: ContractOffer[] | undefined): string[] {
 			.slice(0, 3)
 			.map(
 				(o, i) =>
-					`${i + 1}. ${o.supplier} – ${o.product} (${o.tariffType}): € ${euro.format(o.yearlyPriceEur)}/yr`,
+					`${i + 1}. ${o.supplier} – ${o.product} (${o.tariffType}): € ${euro.format(o.yearlyPriceEur)}/yr` +
+					(o.yearlyPriceWithDiscountEur === undefined
+						? ""
+						: ` (€ ${euro.format(o.yearlyPriceWithDiscountEur)} with first-year discount)`),
 			),
 	];
 }

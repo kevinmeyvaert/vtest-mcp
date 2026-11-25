@@ -13,6 +13,8 @@ export type ContractOffer = {
 	/** Raw V-test green label, e.g. "GREENLOCAL" or "NONE". */
 	greenType: string;
 	yearlyPriceEur: number;
+	/** Yearly price including welcome/promo discounts; only set when it differs. */
+	yearlyPriceWithDiscountEur?: number;
 	monthlyPriceEur: number;
 	unitPriceCentPerKwh: number;
 	contractId: string;
@@ -71,13 +73,22 @@ export function parseResults(html: string): ContractOffer[] {
 					.attr("data-price") ?? "",
 			);
 
+		const yearlyPriceEur = parseBelgianNumber(item.attr("data-price") ?? "");
+		const discounted = item.attr("data-discount");
+		const yearlyPriceWithDiscountEur = discounted
+			? parseBelgianNumber(discounted)
+			: yearlyPriceEur;
+
 		offers.push({
 			energyType,
 			supplier: item.find("#supplier-name").first().text().trim(),
 			product: item.find(".productNameStyle").first().text().trim(),
 			tariffType,
 			greenType: item.attr("data-greentype") ?? "NONE",
-			yearlyPriceEur: parseBelgianNumber(item.attr("data-price") ?? ""),
+			yearlyPriceEur,
+			...(yearlyPriceWithDiscountEur !== yearlyPriceEur && {
+				yearlyPriceWithDiscountEur,
+			}),
 			monthlyPriceEur: priceIn("monthprice"),
 			unitPriceCentPerKwh: priceIn("unitprice"),
 			contractId,

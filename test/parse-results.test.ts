@@ -31,6 +31,16 @@ describe("parseResults", () => {
 		});
 	});
 
+	it("adds the discounted yearly price only when the offer has a discount", () => {
+		expect(offers.find((o) => o.contractId === "18702")).toMatchObject({
+			yearlyPriceEur: 1479.37,
+			yearlyPriceWithDiscountEur: 1234.51,
+		});
+		expect(offers.find((o) => o.contractId === "18861")).not.toHaveProperty(
+			"yearlyPriceWithDiscountEur",
+		);
+	});
+
 	it("decodes HTML entities in supplier names", () => {
 		expect(offers.some((o) => o.supplier === "OCTA+ ENERGIE")).toBe(true);
 	});
