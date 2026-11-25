@@ -1,0 +1,85 @@
+import * as cheerio from "cheerio";
+import { VtestResponseError } from "./errors.js";
+
+export type EnergyType = "electricity" | "gas";
+export type TariffType = "fixed" | "variable" | "dynamic";
+
+export type ContractOffer = {
+	energyType: EnergyType;
+	supplier: string;
+	product: string;
+	tariffType: TariffType;
+	/** Raw V-test green label, e.g. "GREENLOCAL" or "NONE". */
+	greenType: string;
+	yearlyPriceEur: number;
+	monthlyPriceEur: number;
+	unitPriceCentPerKwh: number;
+	contractId: string;
+};
+
+const ENERGY_TYPES: Record<string, EnergyType> = {
+	ELECTRICITY: "electricity",
+	GAS: "gas",
+};
+
+const TARIFF_TYPES: Record<string, TariffType> = {
+	FIXED: "fixed",
+	VARIABLE: "variable",
+	DYNAMIC: "dynamic",
+};
+
+export function parseBelgianNumber(s: string): number {
+	const n = Number(s.trim().replaceAll(".", "").replace(",", "."));
+	if (s.trim() === "" || Number.isNaN(n)) {
+		throw new VtestResponseError(
+			`Unexpected number format on V-test page: "${s}"`,
+		);
+	}
+	return n;
+}
+
+export function parseResults(html: string): ContractOffer[] {
+	const $ = cheerio.load(html);
+	const items = $("div.resultitem");
+	if (items.length === 0) {
+		throw new VtestResponseError(
+			"The V-test page contained no contracts. The form may have been rejected or the site layout changed.",
+		);
+	}
+
+	const offers: ContractOffer[] = [];
+	items.each((_, el) => {
+		const item = $(el);
+		if (item.hasClass("grayedout")) return;
+
+		const contractId = item.attr("data-contractid") ?? "";
+		const energyType = ENERGY_TYPES[item.attr("data-contracttype") ?? ""];
+		const tariffType = TARIFF_TYPES[item.attr("data-tarifftype") ?? ""];
+		if (!energyType || !tariffType) {
+			throw new VtestResponseError(
+				`Unrecognised contract type for contract ${contractId}`,
+			);
+		}
+
+		const priceIn = (cls: string) =>
+			parseBelgianNumber(
+				item
+					.find(`.${cls} .resultitemprice-price`)
+					.first()
+					.attr("data-price") ?? "",
+			);
+
+		offers.push({
+			energyType,
+			supplier: item.find("#supplier-name").first().text().trim(),
+			product: item.find(".productNameStyle").first().text().trim(),
+			tariffType,
+			greenType: item.attr("data-greentype") ?? "NONE",
+			yearlyPriceEur: parseBelgianNumber(item.attr("data-price") ?? ""),
+			monthlyPriceEur: priceIn("monthprice"),
+			unitPriceCentPerKwh: priceIn("unitprice"),
+			contractId,
+		});
+	});
+	return offers;
+}
