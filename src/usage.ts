@@ -66,7 +66,7 @@ const filtersSchema = z.object({
 
 export const usageSchema = z
 	.object({
-		postal_code: z
+		postal_code: z.coerce
 			.string()
 			.regex(/^\d{4}$/, "Use a 4-digit Belgian postcode")
 			.describe("Belgian postcode of the delivery address. Flanders only."),

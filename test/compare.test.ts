@@ -95,6 +95,36 @@ describe("compareContracts", () => {
 	});
 });
 
+describe("compareContracts with solar injection", () => {
+	const solarOffers = parseResults(loadFixture("results-leuven-solar"));
+	const client: VtestClient = {
+		getPostalCodes: async () => postalCodes,
+		compare: async () => solarOffers,
+	};
+	const solarUsage = (electricity: object) =>
+		usageSchema.parse({
+			postal_code: "3000",
+			electricity: { day_kwh: 2500, ...electricity },
+		});
+
+	it("lists feed-in contracts, highest earnings first, when the home injects", async () => {
+		const result = await compareContracts(
+			solarUsage({ injection_day_kwh: 2000 }),
+			client,
+		);
+		expect(result.injection?.[0]).toMatchObject({
+			contractId: "18801",
+			yearlyPriceEur: -195.74,
+		});
+		expect(result.injection).toHaveLength(10);
+	});
+
+	it("leaves out feed-in contracts when the home does not inject", async () => {
+		const result = await compareContracts(solarUsage({}), client);
+		expect(result.injection).toBeUndefined();
+	});
+});
+
 describe("formatSummary", () => {
 	it("lists the top offers per energy type with Belgian euro formatting", async () => {
 		const summary = formatSummary(

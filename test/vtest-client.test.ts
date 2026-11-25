@@ -9,6 +9,12 @@ const usage = (input: unknown): UsageInput => usageSchema.parse(input);
 const field = (form: FormData, name: string) => form.get(name);
 
 describe("usageSchema", () => {
+	it("accepts a postcode sent as a number", () => {
+		expect(usage({ postal_code: 9000, gas: { amount: 1 } }).postal_code).toBe(
+			"9000",
+		);
+	});
+
 	it("requires electricity or gas", () => {
 		expect(() => usage({ postal_code: "9000" })).toThrow(
 			/electricity and\/or gas/,

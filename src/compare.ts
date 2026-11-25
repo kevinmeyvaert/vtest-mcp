@@ -8,6 +8,8 @@ export type CompareResult = {
 	location: { postalCode: string; municipality: string };
 	electricity?: ContractOffer[];
 	gas?: ContractOffer[];
+	/** Feed-in contracts; negative yearly price = what you earn. */
+	injection?: ContractOffer[];
 	source: typeof VTEST_BASE_URL;
 	note: string;
 };
@@ -29,6 +31,11 @@ function rank(
 		.slice(0, usage.limit);
 }
 
+const injects = (usage: UsageInput) =>
+	!!usage.electricity &&
+	usage.electricity.injection_day_kwh + usage.electricity.injection_night_kwh >
+		0;
+
 export async function compareContracts(
 	usage: UsageInput,
 	client: VtestClient,
@@ -49,6 +56,7 @@ export async function compareContracts(
 			electricity: rank(offers, "electricity", usage),
 		}),
 		...(usage.gas && { gas: rank(offers, "gas", usage) }),
+		...(injects(usage) && { injection: rank(offers, "injection", usage) }),
 		source: VTEST_BASE_URL,
 		note: NOTE,
 	};
@@ -78,6 +86,10 @@ export function formatSummary(result: CompareResult): string {
 		`Cheapest contracts for ${result.location.postalCode} ${result.location.municipality}:`,
 		...section("Electricity", result.electricity),
 		...section("Gas", result.gas),
+		...section(
+			"Feed-in for solar injection (negative = you earn)",
+			result.injection,
+		),
 		result.note,
 	].join("\n");
 }

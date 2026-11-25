@@ -35,6 +35,20 @@ describe("parseResults", () => {
 		expect(offers.some((o) => o.supplier === "OCTA+ ENERGIE")).toBe(true);
 	});
 
+	it("reads feed-in (RETURN) contracts for solar households as injection offers", () => {
+		const solar = parseResults(loadFixture("results-leuven-solar"));
+		expect(solar.filter((o) => o.energyType === "injection")).toHaveLength(103);
+		expect(solar.filter((o) => o.energyType === "electricity")).toHaveLength(
+			124,
+		);
+		expect(solar.find((o) => o.contractId === "15002")).toMatchObject({
+			energyType: "injection",
+			supplier: "Bolt",
+			tariffType: "dynamic",
+			yearlyPriceEur: -177.09,
+		});
+	});
+
 	it("throws when the page has no results", () => {
 		expect(() => parseResults("<html><title>Fout</title></html>")).toThrow(
 			VtestResponseError,

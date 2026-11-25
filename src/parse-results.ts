@@ -1,7 +1,8 @@
 import * as cheerio from "cheerio";
 import { VtestResponseError } from "./errors.js";
 
-export type EnergyType = "electricity" | "gas";
+/** "injection" = feed-in contracts for energy returned to the grid; their prices are negative (earnings). */
+export type EnergyType = "electricity" | "gas" | "injection";
 export type TariffType = "fixed" | "variable" | "dynamic";
 
 export type ContractOffer = {
@@ -20,6 +21,7 @@ export type ContractOffer = {
 const ENERGY_TYPES: Record<string, EnergyType> = {
 	ELECTRICITY: "electricity",
 	GAS: "gas",
+	RETURN: "injection",
 };
 
 const TARIFF_TYPES: Record<string, TariffType> = {
