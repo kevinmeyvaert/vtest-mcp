@@ -1,0 +1,38 @@
+{
+	"name": "vtest-mcp",
+	"version": "0.1.0",
+	"description": "MCP server that compares Flemish energy contracts via the V-test (vtest.be)",
+	"main": "dist/index.js",
+	"directories": {
+		"doc": "docs",
+		"test": "test"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check ."
+	},
+	"license": "MIT",
+	"type": "module",
+	"dependencies": {
+		"@modelcontextprotocol/server": "^2.4.0",
+		"cheerio": "^1.2.0",
+		"zod": "^4.6.7"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.6.9",
+		"@types/node": "^26.6.10",
+		"typescript": "^7.0.2",
+		"vitest": "^5.1.2"
+	},
+	"bin": {
+		"vtest-mcp": "dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"engines": {
+		"node": ">=20"
+	}
+}
