@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { USER_AGENT, VTEST_BASE_URL } from "./consts.js";
+import { REQUEST_TIMEOUT_MS, USER_AGENT, VTEST_BASE_URL } from "./consts.js";
 import { VtestResponseError } from "./errors.js";
 import { type ContractOffer, parseResults } from "./parse-results.js";
 import { type PostalCodeOption, parsePostalCodes } from "./postal-codes.js";
@@ -92,14 +92,32 @@ type Session = { html: string; cookie: string; token: string };
 export function createVtestClient(fetchFn: typeof fetch = fetch): VtestClient {
 	let postalCodes: Promise<PostalCodeOption[]> | undefined;
 
-	async function openSession(): Promise<Session> {
-		const res = await fetchFn(`${VTEST_BASE_URL}/`, {
-			headers: { "User-Agent": USER_AGENT },
-		});
+	/** One request to vtest.be, with a timeout; body is read inside so a stalled body also times out. */
+	async function request(
+		init: RequestInit = {},
+	): Promise<{ html: string; headers: Headers }> {
+		let res: Response;
+		let html: string;
+		try {
+			res = await fetchFn(`${VTEST_BASE_URL}/`, {
+				...init,
+				signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+			});
+			html = await res.text();
+		} catch (error) {
+			const reason = error instanceof Error ? error.message : String(error);
+			throw new VtestResponseError(`Could not reach vtest.be: ${reason}`);
+		}
 		if (!res.ok)
 			throw new VtestResponseError(`V-test returned HTTP ${res.status}`);
-		const html = await res.text();
-		const cookie = res.headers
+		return { html, headers: res.headers };
+	}
+
+	async function openSession(): Promise<Session> {
+		const { html, headers } = await request({
+			headers: { "User-Agent": USER_AGENT },
+		});
+		const cookie = headers
 			.getSetCookie()
 			.map((c) => c.split(";")[0])
 			.join("; ");
@@ -107,10 +125,11 @@ export function createVtestClient(fetchFn: typeof fetch = fetch): VtestClient {
 			.load(html)("input[name=__RequestVerificationToken]")
 			.first()
 			.attr("value");
-		if (!token)
+		if (!token) {
 			throw new VtestResponseError(
 				"V-test page had no form token; the site layout may have changed.",
 			);
+		}
 		return { html, cookie, token };
 	}
 
@@ -125,7 +144,7 @@ export function createVtestClient(fetchFn: typeof fetch = fetch): VtestClient {
 
 		async compare(usage, postalCodeId) {
 			const session = await openSession();
-			const res = await fetchFn(`${VTEST_BASE_URL}/`, {
+			const { html } = await request({
 				method: "POST",
 				headers: {
 					"User-Agent": USER_AGENT,
@@ -134,9 +153,7 @@ export function createVtestClient(fetchFn: typeof fetch = fetch): VtestClient {
 				},
 				body: buildForm(usage, postalCodeId, session.token),
 			});
-			if (!res.ok)
-				throw new VtestResponseError(`V-test returned HTTP ${res.status}`);
-			return parseResults(await res.text());
+			return parseResults(html);
 		},
 	};
 }

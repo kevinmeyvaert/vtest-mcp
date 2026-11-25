@@ -165,6 +165,23 @@ describe("createVtestClient", () => {
 		expect(await createVtestClient(fn).getPostalCodes()).toHaveLength(1144);
 	});
 
+	it("passes a timeout signal to every request", async () => {
+		const { fn, calls } = fakeFetch();
+		await createVtestClient(fn).compare(gentUsage, GENT_ID);
+		expect(calls.every((c) => c.init?.signal instanceof AbortSignal)).toBe(
+			true,
+		);
+	});
+
+	it("reports an unreachable V-test as a VtestResponseError", async () => {
+		const failing = (async () => {
+			throw new TypeError("fetch failed");
+		}) as typeof fetch;
+		await expect(
+			createVtestClient(failing).compare(gentUsage, GENT_ID),
+		).rejects.toThrow(/Could not reach vtest.be: fetch failed/);
+	});
+
 	it("rejects a non-200 response from the V-test", async () => {
 		const { fn } = fakeFetch(500);
 		await expect(
